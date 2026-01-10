@@ -1,87 +1,290 @@
-// 여기에 Teachable Machine에서 발행한 공유 링크를 넣으세요.
-// 예: "https://teachablemachine.withgoogle.com/models/ABCDEFG/"
-const URL = "https://teachablemachine.withgoogle.com/models/ABCDEFG/"; 
+const canvas = document.getElementById('tetris');
+const context = canvas.getContext('2d');
+const scoreElement = document.getElementById('score');
+const linesElement = document.getElementById('lines');
+const startBtn = document.getElementById('start-btn');
 
-let model, maxPredictions;
+context.scale(20, 20);
 
-// 페이지 로드 시 모델을 미리 불러옵니다.
-async function init() {
-    const modelURL = URL + "model.json";
-    const metadataURL = URL + "metadata.json";
+function arenaSweep() {
+    let rowCount = 1;
+    outer: for (let y = arena.length - 1; y > 0; --y) {
+        for (let x = 0; x < arena[y].length; ++x) {
+            if (arena[y][x] === 0) {
+                continue outer;
+            }
+        }
+
+        const row = arena.splice(y, 1)[0].fill(0);
+        arena.unshift(row);
+        ++y;
+
+        player.score += rowCount * 10;
+        player.lines += 1;
+        rowCount *= 2;
+    }
+}
+
+function collide(arena, player) {
+    const [m, o] = [player.matrix, player.pos];
+    for (let y = 0; y < m.length; ++y) {
+        for (let x = 0; x < m[y].length; ++x) {
+            if (m[y][x] !== 0 &&
+                (arena[y + o.y] &&
+                arena[y + o.y][x + o.x]) !== 0) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+function createMatrix(w, h) {
+    const matrix = [];
+    while (h--) {
+        matrix.push(new Array(w).fill(0));
+    }
+    return matrix;
+}
+
+function createPiece(type) {
+    if (type === 'I') {
+        return [
+            [0, 1, 0, 0],
+            [0, 1, 0, 0],
+            [0, 1, 0, 0],
+            [0, 1, 0, 0],
+        ];
+    } else if (type === 'L') {
+        return [
+            [0, 2, 0],
+            [0, 2, 0],
+            [0, 2, 2],
+        ];
+    } else if (type === 'J') {
+        return [
+            [0, 3, 0],
+            [0, 3, 0],
+            [3, 3, 0],
+        ];
+    } else if (type === 'O') {
+        return [
+            [4, 4],
+            [4, 4],
+        ];
+    } else if (type === 'Z') {
+        return [
+            [5, 5, 0],
+            [0, 5, 5],
+            [0, 0, 0],
+        ];
+    } else if (type === 'S') {
+        return [
+            [0, 6, 6],
+            [6, 6, 0],
+            [0, 0, 0],
+        ];
+    } else if (type === 'T') {
+        return [
+            [0, 7, 0],
+            [7, 7, 7],
+            [0, 0, 0],
+        ];
+    }
+}
+
+function draw() {
+    context.fillStyle = '#000';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+
+    drawMatrix(arena, {x: 0, y: 0});
+    drawMatrix(player.matrix, player.pos);
+}
+
+function drawMatrix(matrix, offset) {
+    matrix.forEach((row, y) => {
+        row.forEach((value, x) => {
+            if (value !== 0) {
+                context.fillStyle = colors[value];
+                context.fillRect(x + offset.x,
+                                 y + offset.y,
+                                 1, 1);
+                
+                // Add block outline
+                context.lineWidth = 0.05;
+                context.strokeStyle = 'rgba(0,0,0,0.5)';
+                context.strokeRect(x + offset.x, y + offset.y, 1, 1);
+            }
+        });
+    });
+}
+
+function merge(arena, player) {
+    player.matrix.forEach((row, y) => {
+        row.forEach((value, x) => {
+            if (value !== 0) {
+                arena[y + player.pos.y][x + player.pos.x] = value;
+            }
+        });
+    });
+}
+
+function playerDrop() {
+    player.pos.y++;
+    if (collide(arena, player)) {
+        player.pos.y--;
+        merge(arena, player);
+        playerReset();
+        arenaSweep();
+        updateScore();
+    }
+    dropCounter = 0;
+}
+
+function playerMove(dir) {
+    player.pos.x += dir;
+    if (collide(arena, player)) {
+        player.pos.x -= dir;
+    }
+}
+
+function playerReset() {
+    const pieces = 'ILJOTSZ';
+    player.matrix = createPiece(pieces[pieces.length * Math.random() | 0]);
+    player.pos.y = 0;
+    player.pos.x = (arena[0].length / 2 | 0) -
+                   (player.matrix[0].length / 2 | 0);
     
-    try {
-        model = await tmImage.load(modelURL, metadataURL);
-        maxPredictions = model.getTotalClasses();
-        console.log("모델 로드 완료");
-    } catch (e) {
-        console.error("모델 로드 실패. URL을 확인해주세요.", e);
+    if (collide(arena, player)) {
+        arena.forEach(row => row.fill(0));
+        player.score = 0;
+        player.lines = 0;
+        updateScore();
     }
 }
 
-// 페이지가 열리면 바로 실행
-init();
-
-async function predictImage(input) {
-    if (!model) {
-        alert("모델 로딩 중입니다. 잠시만 기다려주세요.");
-        return;
-    }
-
-    if (input.files && input.files[0]) {
-        const reader = new FileReader();
-
-        // UI 업데이트
-        document.getElementById('upload-label').style.display = 'none';
-        const preview = document.getElementById('preview-image');
-        const resultSection = document.getElementById('result-section');
-        const spinner = document.getElementById('loading-spinner');
-        const labelContainer = document.getElementById('label-container');
-        
-        resultSection.style.display = 'block';
-        spinner.style.display = 'block';
-        labelContainer.innerHTML = '';
-        
-        reader.onload = async function(e) {
-            preview.src = e.target.result;
-            preview.style.display = 'block';
-
-            // 분석 및 결과 표시
-            const prediction = await model.predict(preview);
-            prediction.sort((a, b) => b.probability - a.probability);
-            
-            spinner.style.display = 'none';
-            displayResults(prediction);
-            document.querySelector('.retry-btn').style.display = 'block';
-        };
-
-        reader.readAsDataURL(input.files[0]);
+function playerRotate(dir) {
+    const pos = player.pos.x;
+    let offset = 1;
+    rotate(player.matrix, dir);
+    while (collide(arena, player)) {
+        player.pos.x += offset;
+        offset = -(offset + (offset > 0 ? 1 : -1));
+        if (offset > player.matrix[0].length) {
+            rotate(player.matrix, -dir);
+            player.pos.x = pos;
+            return;
+        }
     }
 }
 
-function displayResults(prediction) {
-    const labelContainer = document.getElementById('label-container');
-    const barColors = ['#00d2ff', '#3a7bd5', '#6a11cb', '#2575fc'];
+function rotate(matrix, dir) {
+    for (let y = 0; y < matrix.length; ++y) {
+        for (let x = 0; x < y; ++x) {
+            [
+                matrix[x][y],
+                matrix[y][x],
+            ] = [
+                matrix[y][x],
+                matrix[x][y],
+            ];
+        }
+    }
+
+    if (dir > 0) {
+        matrix.forEach(row => row.reverse());
+    } else {
+        matrix.reverse();
+    }
+}
+
+let dropCounter = 0;
+let dropInterval = 1000;
+
+let lastTime = 0;
+let isPaused = true;
+
+function update(time = 0) {
+    if (isPaused) return;
+
+    const deltaTime = time - lastTime;
+    lastTime = time;
+
+    dropCounter += deltaTime;
+    if (dropCounter > dropInterval) {
+        playerDrop();
+    }
+
+    draw();
+    requestAnimationFrame(update);
+}
+
+function updateScore() {
+    scoreElement.innerText = player.score;
+    linesElement.innerText = player.lines;
+}
+
+const colors = [
+    null,
+    '#FF0D72', // I
+    '#0DC2FF', // L
+    '#0DFF72', // J
+    '#F538FF', // O
+    '#FF8E0D', // Z
+    '#FFE138', // S
+    '#3877FF', // T
+];
+
+const arena = createMatrix(12, 20);
+
+const player = {
+    pos: {x: 0, y: 0},
+    matrix: null,
+    score: 0,
+    lines: 0,
+};
+
+document.addEventListener('keydown', event => {
+    if (isPaused) return;
     
-    for (let i = 0; i < maxPredictions; i++) {
-        const percent = (prediction[i].probability * 100).toFixed(0);
-        const className = prediction[i].className;
-        
-        const wrapper = document.createElement('div');
-        wrapper.className = 'result-bar-wrapper';
-        
-        wrapper.innerHTML = `
-            <div class="bar-label">
-                <span>${className}</span>
-                <span>${percent}%</span>
-            </div>
-            <div class="bar-bg">
-                <div class="bar-fill" style="width: 0%; background: ${barColors[i % barColors.length]}"></div>
-            </div>
-        `;
-        
-        labelContainer.appendChild(wrapper);
-        setTimeout(() => {
-            wrapper.querySelector('.bar-fill').style.width = percent + '%';
-        }, 100);
+    if (event.keyCode === 37) {
+        playerMove(-1);
+    } else if (event.keyCode === 39) {
+        playerMove(1);
+    } else if (event.keyCode === 40) {
+        playerDrop();
+    } else if (event.keyCode === 81 || event.keyCode === 90) { // Q or Z
+        playerRotate(-1);
+    } else if (event.keyCode === 87 || event.keyCode === 38 || event.keyCode === 88) { // W, Up, X
+        playerRotate(1);
+    } else if (event.keyCode === 32) { // Space - Hard drop
+        while (!collide(arena, player)) {
+            player.pos.y++;
+        }
+        player.pos.y--;
+        merge(arena, player);
+        playerReset();
+        arenaSweep();
+        updateScore();
     }
-}
+});
+
+startBtn.addEventListener('click', () => {
+    if (isPaused) {
+        isPaused = false;
+        playerReset();
+        update();
+    } else {
+        // Reset game
+        arena.forEach(row => row.fill(0));
+        player.score = 0;
+        player.lines = 0;
+        updateScore();
+        playerReset();
+    }
+});
+
+// Initial draw
+player.matrix = createPiece('T');
+draw();
+updateScore();
