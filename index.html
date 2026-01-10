@@ -3,45 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>동물상 테스트 - 강아지 vs 오리</title>
+    <title>동물상 테스트</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="main-container">
         <h1>동물상 테스트</h1>
-        <h2>나는 순둥한 강아지상? 힙한 오리상?</h2>
+        <div>Teachable Machine Image Model</div>
         
-        <div id="upload-area">
-            <!-- 1단계: 모델 파일 업로드 -->
-            <div id="step-model">
-                <h3>Step 1. 모델 파일 열기</h3>
-                <p class="description">Teachable Machine에서 다운로드한 파일 3개를<br>한꺼번에 선택해주세요.<br><small>(model.json, metadata.json, weights.bin)</small></p>
-                <input type="file" id="model-input" multiple accept=".json, .bin" onchange="loadModelFromFile(this)" style="display: none;">
-                <button type="button" onclick="document.getElementById('model-input').click()" id="load-model-btn">📂 모델 파일 3개 선택하기</button>
-            </div>
+        <!-- 사진 업로드 버튼 -->
+        <input type="file" id="file-input" accept="image/*" onchange="readURL(this);" style="display: none;">
+        <button type="button" onclick="document.getElementById('file-input').click();" id="start-btn">사진 업로드</button>
 
-            <!-- 2단계: 이미지 업로드 (초기에는 숨김) -->
-            <div id="step-image" style="display: none;">
-                <h3>Step 2. 사진으로 테스트</h3>
-                <input type="file" id="image-upload" accept="image/*" onchange="readFile(this);" style="display: none;">
-                <div id="image-show" onclick="document.getElementById('image-upload').click();">
-                    <div id="upload-text">
-                        <p>📷</p>
-                        <p>여기를 눌러 사진을 업로드하세요</p>
-                    </div>
-                    <img id="image-preview" src="" alt="" style="display: none;">
-                </div>
-            </div>
-            
-            <!-- 로딩 표시 -->
-            <div id="loading-area" style="display: none;">
-                <p>AI가 분석 중입니다...</p>
-            </div>
+        <!-- 이미지 미리보기 영역 (웹캠 컨테이너 대신 사용) -->
+        <div id="image-container">
+            <img id="face-image" src="" alt="" style="max-width: 300px; border-radius: 10px; display: none; margin: 20px auto;">
         </div>
-
+        
         <div id="label-container"></div>
 
-        <!-- 기존 하단 섹션 유지 -->
+        <!-- 제휴 문의 및 댓글 섹션 유지 -->
         <div id="contact-section">
             <hr>
             <h3>제휴 문의</h3>
@@ -63,18 +44,16 @@
             <hr>
             <div id="disqus_thread"></div>
             <script>
-                (function() { // DON'T EDIT BELOW THIS LINE
+                (function() {
                 var d = document, s = d.createElement('script');
                 s.src = 'https://fromsun.disqus.com/embed.js';
                 s.setAttribute('data-timestamp', +new Date());
                 (d.head || d.body).appendChild(s);
                 })();
             </script>
-            <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
         </div>
     </div>
 
-    <!-- TensorFlow & Teachable Machine Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
     <script src="main.js"></script>
