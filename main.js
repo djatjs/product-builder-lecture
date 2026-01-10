@@ -1,247 +1,100 @@
-const canvas = document.getElementById('tetris');
-const context = canvas.getContext('2d');
+// Teachable Machine 모델 URL
+// 사용자가 직접 만든 모델 파일을 my_model 폴더에 넣어야 합니다.
+const URL = "./my_model/";
 
-context.scale(20, 20);
+let model, webcam, labelContainer, maxPredictions;
 
-function arenaSweep() {
-    let rowCount = 1;
-    outer: for (let y = arena.length - 1; y > 0; --y) {
-        for (let x = 0; x < arena[y].length; ++x) {
-            if (arena[y][x] === 0) {
-                continue outer;
-            }
-        }
+// 시작 버튼 클릭 시 실행
+async function init() {
+    const startBtn = document.getElementById('start-btn');
+    startBtn.innerText = "로딩 중...";
+    startBtn.disabled = true;
 
-        const row = arena.splice(y, 1)[0].fill(0);
-        arena.unshift(row);
-        ++y;
+    const modelURL = URL + "model.json";
+    const metadataURL = URL + "metadata.json";
 
-        player.score += rowCount * 10;
-        rowCount *= 2;
+    try {
+        model = await tmImage.load(modelURL, metadataURL);
+        maxPredictions = model.getTotalClasses();
+    } catch (e) {
+        alert("모델 파일을 찾을 수 없습니다! 'my_model' 폴더에 model.json과 metadata.json이 있는지 확인해주세요.");
+        startBtn.innerText = "테스트 시작하기";
+        startBtn.disabled = false;
+        return;
     }
-}
 
-function collide(arena, player) {
-    const [m, o] = [player.matrix, player.pos];
-    for (let y = 0; y < m.length; ++y) {
-        for (let x = 0; x < m[y].length; ++x) {
-            if (m[y][x] !== 0 &&
-                (arena[y + o.y] &&
-                arena[y + o.y][x + o.x]) !== 0) {
-                return true;
-            }
-        }
-    }
-    return false;
-}
+    // 웹캠 설정
+    const flip = true; 
+    webcam = new tmImage.Webcam(300, 300, flip); // width, height, flip
+    await webcam.setup(); // 웹캠 접근 권한 요청
+    await webcam.play();
+    window.requestAnimationFrame(loop);
 
-function createMatrix(w, h) {
-    const matrix = [];
-    while (h--) {
-        matrix.push(new Array(w).fill(0));
-    }
-    return matrix;
-}
-
-function createPiece(type) {
-    if (type === 'I') {
-        return [
-            [0, 1, 0, 0],
-            [0, 1, 0, 0],
-            [0, 1, 0, 0],
-            [0, 1, 0, 0],
-        ];
-    } else if (type === 'L') {
-        return [
-            [0, 2, 0],
-            [0, 2, 0],
-            [0, 2, 2],
-        ];
-    } else if (type === 'J') {
-        return [
-            [0, 3, 0],
-            [0, 3, 0],
-            [3, 3, 0],
-        ];
-    } else if (type === 'O') {
-        return [
-            [4, 4],
-            [4, 4],
-        ];
-    } else if (type === 'Z') {
-        return [
-            [5, 5, 0],
-            [0, 5, 5],
-            [0, 0, 0],
-        ];
-    } else if (type === 'S') {
-        return [
-            [0, 6, 6],
-            [6, 6, 0],
-            [0, 0, 0],
-        ];
-    } else if (type === 'T') {
-        return [
-            [0, 7, 0],
-            [7, 7, 7],
-            [0, 0, 0],
-        ];
-    }
-}
-
-function draw() {
-    context.fillStyle = '#000';
-    context.fillRect(0, 0, canvas.width, canvas.height);
-
-    drawMatrix(arena, {x: 0, y: 0});
-    drawMatrix(player.matrix, player.pos);
-}
-
-function drawMatrix(matrix, offset) {
-    matrix.forEach((row, y) => {
-        row.forEach((value, x) => {
-            if (value !== 0) {
-                context.fillStyle = colors[value];
-                context.fillRect(x + offset.x,
-                                 y + offset.y,
-                                 1, 1);
-            }
-        });
-    });
-}
-
-function merge(arena, player) {
-    player.matrix.forEach((row, y) => {
-        row.forEach((value, x) => {
-            if (value !== 0) {
-                arena[y + player.pos.y][x + player.pos.x] = value;
-            }
-        });
-    });
-}
-
-function playerDrop() {
-    player.pos.y++;
-    if (collide(arena, player)) {
-        player.pos.y--;
-        merge(arena, player);
-        playerReset();
-        arenaSweep();
-        updateScore();
-    }
-    dropCounter = 0;
-}
-
-function playerMove(dir) {
-    player.pos.x += dir;
-    if (collide(arena, player)) {
-        player.pos.x -= dir;
-    }
-}
-
-function playerReset() {
-    const pieces = 'ILJOTSZ';
-    player.matrix = createPiece(pieces[pieces.length * Math.random() | 0]);
-    player.pos.y = 0;
-    player.pos.x = (arena[0].length / 2 | 0) -
-                   (player.matrix[0].length / 2 | 0);
+    // UI 업데이트
+    document.getElementById("webcam-container").appendChild(webcam.canvas);
+    document.getElementById("upload-area").style.display = "none"; // 시작 버튼 숨기기
     
-    if (collide(arena, player)) {
-        arena.forEach(row => row.fill(0));
-        player.score = 0;
-        updateScore();
+    labelContainer = document.getElementById("label-container");
+    for (let i = 0; i < maxPredictions; i++) {
+        // 결과 바(Bar) 생성
+        const wrapper = document.createElement("div");
+        wrapper.className = "label-wrapper";
+        
+        // 동물 이름 (예: Dog, Duck)
+        const nameDiv = document.createElement("div");
+        nameDiv.className = "label-name";
+        wrapper.appendChild(nameDiv);
+
+        // 게이지 바 배경
+        const progressContainer = document.createElement("div");
+        progressContainer.className = "progress-container";
+        
+        // 게이지 바 채움
+        const progressBar = document.createElement("div");
+        progressBar.className = "progress-bar";
+        progressContainer.appendChild(progressBar);
+        wrapper.appendChild(progressContainer);
+
+        // 퍼센트 텍스트
+        const percentDiv = document.createElement("div");
+        percentDiv.className = "label-percent";
+        wrapper.appendChild(percentDiv);
+
+        labelContainer.appendChild(wrapper);
     }
 }
 
-function playerRotate(dir) {
-    const pos = player.pos.x;
-    let offset = 1;
-    rotate(player.matrix, dir);
-    while (collide(arena, player)) {
-        player.pos.x += offset;
-        offset = -(offset + (offset > 0 ? 1 : -1));
-        if (offset > player.matrix[0].length) {
-            rotate(player.matrix, -dir);
-            player.pos.x = pos;
-            return;
-        }
-    }
+async function loop() {
+    webcam.update(); 
+    await predict();
+    window.requestAnimationFrame(loop);
 }
 
-function rotate(matrix, dir) {
-    for (let y = 0; y < matrix.length; ++y) {
-        for (let x = 0; x < y; ++x) {
-            [
-                matrix[x][y],
-                matrix[y][x],
-            ] = [
-                matrix[y][x],
-                matrix[x][y],
-            ];
-        }
-    }
+// 예측 및 결과 표시
+async function predict() {
+    const prediction = await model.predict(webcam.canvas);
+    
+    // 색상 배열 (순서대로 적용)
+    const barColors = ['#FF0D72', '#0DC2FF', '#0DFF72', '#FFE138'];
 
-    if (dir > 0) {
-        matrix.forEach(row => row.reverse());
-    } else {
-        matrix.reverse();
+    for (let i = 0; i < maxPredictions; i++) {
+        const wrapper = labelContainer.childNodes[i];
+        const nameDiv = wrapper.getElementsByClassName("label-name")[0];
+        const progressBar = wrapper.getElementsByClassName("progress-bar")[0];
+        const percentDiv = wrapper.getElementsByClassName("label-percent")[0];
+
+        // 클래스 이름 (Dog -> 강아지, Duck -> 오리 등으로 변경 가능)
+        // 여기서는 모델의 클래스명을 그대로 사용합니다.
+        nameDiv.innerHTML = prediction[i].className;
+        
+        // 확률 계산
+        const probability = prediction[i].probability.toFixed(2);
+        const percent = Math.round(probability * 100);
+
+        // 스타일 적용
+        progressBar.style.width = percent + "%";
+        progressBar.style.backgroundColor = barColors[i % barColors.length];
+        
+        percentDiv.innerHTML = percent + "%";
     }
 }
-
-let dropCounter = 0;
-let dropInterval = 1000;
-
-let lastTime = 0;
-function update(time = 0) {
-    const deltaTime = time - lastTime;
-    lastTime = time;
-
-    dropCounter += deltaTime;
-    if (dropCounter > dropInterval) {
-        playerDrop();
-    }
-
-    draw();
-    requestAnimationFrame(update);
-}
-
-function updateScore() {
-    document.getElementById('score').innerText = player.score;
-}
-
-const colors = [
-    null,
-    '#FF0D72',
-    '#0DC2FF',
-    '#0DFF72',
-    '#F538FF',
-    '#FF8E0D',
-    '#FFE138',
-    '#3877FF',
-];
-
-const arena = createMatrix(12, 20);
-
-const player = {
-    pos: {x: 0, y: 0},
-    matrix: null,
-    score: 0,
-};
-
-document.addEventListener('keydown', event => {
-    if (event.keyCode === 37) {
-        playerMove(-1);
-    } else if (event.keyCode === 39) {
-        playerMove(1);
-    } else if (event.keyCode === 40) {
-        playerDrop();
-    } else if (event.keyCode === 81) {
-        playerRotate(-1);
-    } else if (event.keyCode === 87 || event.keyCode === 38) {
-        playerRotate(1);
-    }
-});
-
-playerReset();
-updateScore();
-update();

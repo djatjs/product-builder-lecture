@@ -3,21 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>웹 테트리스</title>
+    <title>동물상 테스트 - 강아지 vs 오리</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="game-container">
-        <h1>Tetris</h1>
-        <div id="score-box">Score: <span id="score">0</span></div>
-        <canvas id="tetris" width="240" height="400"></canvas>
-        <div class="controls">
-            <p>조작법:</p>
-            <p>← → : 이동</p>
-            <p>↓ : 빠르게 내리기</p>
-            <p>↑, Q, W : 회전</p>
+    <div id="main-container">
+        <h1>동물상 테스트</h1>
+        <h2>나는 순둥한 강아지상? 힙한 오리상?</h2>
+        
+        <div id="upload-area">
+            <button type="button" onclick="init()" id="start-btn">테스트 시작하기</button>
+            <p class="description">카메라 이용 권한을 허용해주세요.</p>
         </div>
 
+        <div id="webcam-container"></div>
+        <div id="label-container"></div>
+
+        <!-- 기존 하단 섹션 유지 -->
         <div id="contact-section">
             <hr>
             <h3>제휴 문의</h3>
@@ -33,19 +35,12 @@
                 </div>
                 <button type="submit" id="submit-btn">문의하기</button>
             </form>
+        </div>
+
         <div id="comments-section">
             <hr>
             <div id="disqus_thread"></div>
             <script>
-                /**
-                *  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
-                *  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables    */
-                /*
-                var disqus_config = function () {
-                this.page.url = PAGE_URL;  // Replace PAGE_URL with your page's canonical URL variable
-                this.page.identifier = PAGE_IDENTIFIER; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
-                };
-                */
                 (function() { // DON'T EDIT BELOW THIS LINE
                 var d = document, s = d.createElement('script');
                 s.src = 'https://fromsun.disqus.com/embed.js';
@@ -56,6 +51,10 @@
             <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
         </div>
     </div>
+
+    <!-- TensorFlow & Teachable Machine Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
     <script src="main.js"></script>
 </body>
 </html>
