@@ -31,7 +31,30 @@ header h1 {
 
 .subtitle {
     color: #888;
-    margin-bottom: 40px;
+    margin-bottom: 20px;
+}
+
+.model-link-section {
+    margin-bottom: 30px;
+    text-align: left;
+}
+
+#model-url {
+    width: 100%;
+    padding: 12px;
+    background: #333;
+    border: 1px solid var(--primary-color);
+    border-radius: 8px;
+    color: #fff;
+    box-sizing: border-box;
+    font-size: 0.9rem;
+}
+
+.info-text {
+    font-size: 0.8rem;
+    color: #666;
+    margin-top: 5px;
+    margin-left: 5px;
 }
 
 /* 업로드 박스 */

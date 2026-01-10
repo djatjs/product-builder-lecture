@@ -1,25 +1,32 @@
-// 제공해주신 기본 설정 유지
-const URL = "./my_model/";
+let model, maxPredictions;
 
-let model, labelContainer, maxPredictions;
-
-// 모델 로드 함수
-async function loadModel() {
-    const modelURL = URL + "model.json";
-    const metadataURL = URL + "metadata.json";
+// 모델 로드 함수 (입력된 URL 사용)
+async function loadModel(url) {
+    const modelURL = url + "model.json";
+    const metadataURL = url + "metadata.json";
     
-    if (!model) {
-        model = await tmImage.load(modelURL, metadataURL);
-        maxPredictions = model.getTotalClasses();
-    }
+    // 새로 입력된 URL이 있을 경우에만 로드
+    model = await tmImage.load(modelURL, metadataURL);
+    maxPredictions = model.getTotalClasses();
 }
 
 // 사진이 업로드되었을 때 실행되는 함수
 async function predictImage(input) {
+    const urlInput = document.getElementById('model-url').value.trim();
+    
+    if (!urlInput) {
+        alert("Teachable Machine 모델 공유 링크를 먼저 입력해주세요!");
+        input.value = ""; // 파일 선택 초기화
+        return;
+    }
+
+    // URL 형식 보정 (끝에 /가 없으면 추가)
+    const formattedURL = urlInput.endsWith('/') ? urlInput : urlInput + '/';
+
     if (input.files && input.files[0]) {
         const reader = new FileReader();
 
-        // 1. UI 준비
+        // UI 업데이트
         document.getElementById('upload-label').style.display = 'none';
         const preview = document.getElementById('preview-image');
         const resultSection = document.getElementById('result-section');
@@ -34,23 +41,26 @@ async function predictImage(input) {
             preview.src = e.target.result;
             preview.style.display = 'block';
 
-            // 2. 모델 로드 및 예측
             try {
-                await loadModel();
+                // 입력된 클라우드 URL로부터 모델 로드
+                await loadModel(formattedURL);
+                
+                // 예측 수행
                 const prediction = await model.predict(preview);
                 
-                // 정렬 (확률 높은 순)
+                // 확률순 정렬
                 prediction.sort((a, b) => b.probability - a.probability);
                 
-                // 3. 결과 표시
                 spinner.style.display = 'none';
                 displayResults(prediction);
                 document.querySelector('.retry-btn').style.display = 'block';
                 
             } catch (error) {
                 console.error(error);
-                alert("모델 로드에 실패했습니다. my_model 폴더를 확인해주세요.");
-                location.reload();
+                alert("모델을 불러오지 못했습니다. 링크가 올바른지 확인해주세요.");
+                spinner.style.display = 'none';
+                document.getElementById('upload-label').style.display = 'block';
+                preview.style.display = 'none';
             }
         };
 
@@ -58,7 +68,6 @@ async function predictImage(input) {
     }
 }
 
-// 결과를 프로그레스 바 형태로 표시
 function displayResults(prediction) {
     const labelContainer = document.getElementById('label-container');
     
@@ -81,7 +90,6 @@ function displayResults(prediction) {
         
         labelContainer.appendChild(wrapper);
         
-        // 애니메이션 효과를 위해 딜레이 후 가로 길이 설정
         setTimeout(() => {
             wrapper.querySelector('.bar-fill').style.width = percent + '%';
         }, 100);
