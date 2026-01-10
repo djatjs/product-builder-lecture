@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>인공지능 동물상 테스트 - 강아지상 vs 오리상</title>
-    <meta name="description" content="나와 닮은 동물상은 무엇일까요? 인공지능이 분석하는 강아지상, 오리상 테스트! 지금 바로 사진을 업로드하고 결과를 확인하세요.">
+    <title>테트리스 & 동물상 테스트 마스터</title>
+    <meta name="description" content="무료 테트리스 게임과 AI 동물상 테스트를 한 곳에서 즐기세요. 나의 강아지상, 오리상 결과를 확인하고 고득점 전략을 배워보세요.">
     <meta name="google-adsense-account" content="ca-pub-2917877920791957">
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2917877920791957"
      crossorigin="anonymous"></script>
@@ -14,76 +14,78 @@
 <body>
     <div class="container">
         <header>
-            <h1>동물상 테스트</h1>
-            <p class="subtitle">강아지상? 오리상? AI가 알려주는 나의 동물상</p>
+            <h1>Play & Test</h1>
+            <p class="subtitle">AI 동물상 테스트와 클래식 테트리스</p>
         </header>
 
         <nav class="site-nav">
             <ul>
-                <li><a href="#test-section">테스트 하기</a></li>
-                <li><a href="#intro">동물상 소개</a></li>
-                <li><a href="#contact-section">문의하기</a></li>
+                <li><a href="javascript:void(0)" onclick="showSection('test')">동물상 테스트</a></li>
+                <li><a href="javascript:void(0)" onclick="showSection('tetris')">테트리스 게임</a></li>
+                <li><a href="#intro">가이드 & 공략</a></li>
             </ul>
         </nav>
 
         <main>
-            <!-- 테스트 섹션 -->
-            <section id="test-section">
-                <div class="upload-section">
-                    <input type="file" id="image-input" accept="image/*" onchange="predictImage(this)" style="display: none;">
-                    <div class="upload-box" onclick="document.getElementById('image-input').click();">
-                        <div id="upload-label">
-                            <span class="icon">📸</span>
-                            <p>클릭하여 사진을 업로드하세요</p>
+            <!-- [SECTION 1] 동물상 테스트 -->
+            <section id="test-section" class="main-content">
+                <div class="card-box">
+                    <h2>나의 동물상 찾기</h2>
+                    <div class="upload-section">
+                        <input type="file" id="image-input" accept="image/*" onchange="predictImage(this)" style="display: none;">
+                        <div class="upload-box" onclick="document.getElementById('image-input').click();">
+                            <div id="upload-label">
+                                <span class="icon">📸</span>
+                                <p>클릭하여 사진을 업로드하세요</p>
+                            </div>
+                            <img id="preview-image" src="" alt="preview" style="display: none;">
                         </div>
-                        <img id="preview-image" src="" alt="preview" style="display: none;">
                     </div>
-                </div>
 
-                <div id="result-section" style="display: none;">
-                    <div id="loading-spinner">
-                        <div class="spinner"></div>
-                        <p>AI 분석 중...</p>
+                    <div id="result-section" style="display: none;">
+                        <div id="loading-spinner">
+                            <div class="spinner"></div>
+                            <p>AI 분석 중...</p>
+                        </div>
+                        <div id="label-container"></div>
+                        <div id="animal-details" class="details-box" style="display: none;"></div>
                     </div>
-                    <div id="label-container"></div>
+                    <button type="button" class="retry-btn" onclick="location.reload();" style="display: none;">다시 테스트하기</button>
                 </div>
-
-                <button type="button" class="retry-btn" onclick="location.reload();" style="display: none;">다시 하기</button>
             </section>
 
-            <!-- 광고 영역 1 -->
+            <!-- [SECTION 2] 테트리스 게임 -->
+            <section id="tetris-section" class="main-content" style="display: none;">
+                <div class="card-box">
+                    <h2>클래식 테트리스</h2>
+                    <div class="game-wrapper">
+                        <div class="score-display">
+                            <div class="stat-box">SCORE <span id="score">0</span></div>
+                            <div class="stat-box">LINES <span id="lines">0</span></div>
+                        </div>
+                        <canvas id="tetris" width="240" height="400"></canvas>
+                        <div class="game-controls">
+                            <button id="start-btn" class="retry-btn">게임 시작 / 재시작</button>
+                            <p class="controls-info">화살표: 이동/회전 | Space: 하드드롭</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <div class="ad-container">
-                <ins class="adsbygoogle"
-                    style="display:block"
-                    data-ad-client="ca-pub-2917877920791957"
-                    data-ad-slot="auto"
-                    data-ad-format="auto"
-                    data-full-width-responsive="true"></ins>
+                <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-2917877920791957" data-ad-slot="auto" data-ad-format="auto" data-full-width-responsive="true"></ins>
                 <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
             </div>
 
-            <!-- 정보성 콘텐츠 -->
             <section id="intro" class="content-section">
-                <h2>대표적인 동물상 특징</h2>
+                <h2>서비스 안내</h2>
                 <div class="content-box">
-                    <h3>🐶 강아지상</h3>
-                    <p>강아지상은 전반적으로 둥글둥글하고 부드러운 인상을 줍니다. 눈매가 처지거나 동그란 편이며, 웃을 때 선한 느낌을 주는 것이 특징입니다. 보는 사람으로 하여금 보호 본능을 자극하고 친근감을 느끼게 합니다.</p>
-                    
-                    <h3>🦆 오리상</h3>
-                    <p>오리상은 입술이 도톰하거나 입매가 매력적인 것이 특징입니다. 개성 있고 힙한 분위기를 풍기며, 웃을 때 입꼬리가 올라가는 모습이 매력 포인트로 꼽힙니다. 최근 많은 연예인들 사이에서도 인기 있는 매력적인 동물상입니다.</p>
+                    <h3>🔍 AI 동물상 테스트</h3>
+                    <p>수천 장의 동물 사진을 학습한 Google 인공지능이 당신의 얼굴을 분석합니다. 강아지상과 오리상 중 어떤 매력을 더 많이 가지고 있는지 확인해 보세요.</p>
+                    <h3>🕹️ 테트리스 게임 공략</h3>
+                    <p>고득점을 원하신다면 'T-Spin' 기술을 익히고, 한 번에 4줄을 지우는 '테트리스'를 노리세요. 연속 콤보가 점수 향상의 핵심입니다.</p>
                 </div>
             </section>
-
-            <!-- 광고 영역 2 -->
-            <div class="ad-container">
-                <ins class="adsbygoogle"
-                    style="display:block"
-                    data-ad-client="ca-pub-2917877920791957"
-                    data-ad-slot="auto"
-                    data-ad-format="auto"
-                    data-full-width-responsive="true"></ins>
-                <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-            </div>
         </main>
 
         <footer>
@@ -97,7 +99,6 @@
                     <button type="submit">문의하기</button>
                 </form>
             </section>
-            
             <div id="disqus_thread"></div>
         </footer>
     </div>
