@@ -1,84 +1,247 @@
-const menuDisplay = document.getElementById('menu-display');
-const generateButton = document.getElementById('generate-button');
-const themeToggle = document.getElementById('theme-toggle');
-const body = document.body;
+const canvas = document.getElementById('tetris');
+const context = canvas.getContext('2d');
 
-const dinnerMenus = [
-    '치킨', '피자', '햄버거', '초밥', '파스타',
-    '삼겹살', '김치찌개', '된장찌개', '부대찌개', '떡볶이',
-    '라면', '카레', '돈까스', '짜장면', '짬뽕'
+context.scale(20, 20);
+
+function arenaSweep() {
+    let rowCount = 1;
+    outer: for (let y = arena.length - 1; y > 0; --y) {
+        for (let x = 0; x < arena[y].length; ++x) {
+            if (arena[y][x] === 0) {
+                continue outer;
+            }
+        }
+
+        const row = arena.splice(y, 1)[0].fill(0);
+        arena.unshift(row);
+        ++y;
+
+        player.score += rowCount * 10;
+        rowCount *= 2;
+    }
+}
+
+function collide(arena, player) {
+    const [m, o] = [player.matrix, player.pos];
+    for (let y = 0; y < m.length; ++y) {
+        for (let x = 0; x < m[y].length; ++x) {
+            if (m[y][x] !== 0 &&
+                (arena[y + o.y] &&
+                arena[y + o.y][x + o.x]) !== 0) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+function createMatrix(w, h) {
+    const matrix = [];
+    while (h--) {
+        matrix.push(new Array(w).fill(0));
+    }
+    return matrix;
+}
+
+function createPiece(type) {
+    if (type === 'I') {
+        return [
+            [0, 1, 0, 0],
+            [0, 1, 0, 0],
+            [0, 1, 0, 0],
+            [0, 1, 0, 0],
+        ];
+    } else if (type === 'L') {
+        return [
+            [0, 2, 0],
+            [0, 2, 0],
+            [0, 2, 2],
+        ];
+    } else if (type === 'J') {
+        return [
+            [0, 3, 0],
+            [0, 3, 0],
+            [3, 3, 0],
+        ];
+    } else if (type === 'O') {
+        return [
+            [4, 4],
+            [4, 4],
+        ];
+    } else if (type === 'Z') {
+        return [
+            [5, 5, 0],
+            [0, 5, 5],
+            [0, 0, 0],
+        ];
+    } else if (type === 'S') {
+        return [
+            [0, 6, 6],
+            [6, 6, 0],
+            [0, 0, 0],
+        ];
+    } else if (type === 'T') {
+        return [
+            [0, 7, 0],
+            [7, 7, 7],
+            [0, 0, 0],
+        ];
+    }
+}
+
+function draw() {
+    context.fillStyle = '#000';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+
+    drawMatrix(arena, {x: 0, y: 0});
+    drawMatrix(player.matrix, player.pos);
+}
+
+function drawMatrix(matrix, offset) {
+    matrix.forEach((row, y) => {
+        row.forEach((value, x) => {
+            if (value !== 0) {
+                context.fillStyle = colors[value];
+                context.fillRect(x + offset.x,
+                                 y + offset.y,
+                                 1, 1);
+            }
+        });
+    });
+}
+
+function merge(arena, player) {
+    player.matrix.forEach((row, y) => {
+        row.forEach((value, x) => {
+            if (value !== 0) {
+                arena[y + player.pos.y][x + player.pos.x] = value;
+            }
+        });
+    });
+}
+
+function playerDrop() {
+    player.pos.y++;
+    if (collide(arena, player)) {
+        player.pos.y--;
+        merge(arena, player);
+        playerReset();
+        arenaSweep();
+        updateScore();
+    }
+    dropCounter = 0;
+}
+
+function playerMove(dir) {
+    player.pos.x += dir;
+    if (collide(arena, player)) {
+        player.pos.x -= dir;
+    }
+}
+
+function playerReset() {
+    const pieces = 'ILJOTSZ';
+    player.matrix = createPiece(pieces[pieces.length * Math.random() | 0]);
+    player.pos.y = 0;
+    player.pos.x = (arena[0].length / 2 | 0) -
+                   (player.matrix[0].length / 2 | 0);
+    
+    if (collide(arena, player)) {
+        arena.forEach(row => row.fill(0));
+        player.score = 0;
+        updateScore();
+    }
+}
+
+function playerRotate(dir) {
+    const pos = player.pos.x;
+    let offset = 1;
+    rotate(player.matrix, dir);
+    while (collide(arena, player)) {
+        player.pos.x += offset;
+        offset = -(offset + (offset > 0 ? 1 : -1));
+        if (offset > player.matrix[0].length) {
+            rotate(player.matrix, -dir);
+            player.pos.x = pos;
+            return;
+        }
+    }
+}
+
+function rotate(matrix, dir) {
+    for (let y = 0; y < matrix.length; ++y) {
+        for (let x = 0; x < y; ++x) {
+            [
+                matrix[x][y],
+                matrix[y][x],
+            ] = [
+                matrix[y][x],
+                matrix[x][y],
+            ];
+        }
+    }
+
+    if (dir > 0) {
+        matrix.forEach(row => row.reverse());
+    } else {
+        matrix.reverse();
+    }
+}
+
+let dropCounter = 0;
+let dropInterval = 1000;
+
+let lastTime = 0;
+function update(time = 0) {
+    const deltaTime = time - lastTime;
+    lastTime = time;
+
+    dropCounter += deltaTime;
+    if (dropCounter > dropInterval) {
+        playerDrop();
+    }
+
+    draw();
+    requestAnimationFrame(update);
+}
+
+function updateScore() {
+    document.getElementById('score').innerText = player.score;
+}
+
+const colors = [
+    null,
+    '#FF0D72',
+    '#0DC2FF',
+    '#0DFF72',
+    '#F538FF',
+    '#FF8E0D',
+    '#FFE138',
+    '#3877FF',
 ];
 
-// Function to generate a random menu
-function generateMenu() {
-    const randomIndex = Math.floor(Math.random() * dinnerMenus.length);
-    return dinnerMenus[randomIndex];
-}
+const arena = createMatrix(12, 20);
 
-// Function to display the menu
-function displayMenu(menu) {
-    menuDisplay.innerHTML = '';
-    
-    const container = document.createElement('div');
-    container.style.display = 'flex';
-    container.style.flexDirection = 'column';
-    container.style.alignItems = 'center';
-    container.style.gap = '15px';
+const player = {
+    pos: {x: 0, y: 0},
+    matrix: null,
+    score: 0,
+};
 
-    const menuItem = document.createElement('div');
-    menuItem.classList.add('menu-item');
-    menuItem.textContent = menu;
-    container.appendChild(menuItem);
-
-    // Create loading indicator
-    const loadingText = document.createElement('div');
-    loadingText.textContent = '이미지 요리 중...';
-    loadingText.style.color = '#888';
-    loadingText.style.fontSize = '14px';
-    loadingText.style.marginTop = '10px';
-    container.appendChild(loadingText);
-
-    const img = document.createElement('img');
-    // Using Pollinations.ai for image generation without API key
-    // Adding 'delicious' to prompt for better results
-    img.src = `https://image.pollinations.ai/prompt/delicious ${encodeURIComponent(menu)}?width=300&height=300&nologo=true&seed=${Math.floor(Math.random() * 1000)}`;
-    img.alt = menu;
-    img.classList.add('menu-image');
-    img.style.maxWidth = '100%';
-    img.style.borderRadius = '10px';
-    img.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
-    img.style.display = 'none'; // Hide initially
-
-    img.onload = () => {
-        loadingText.remove(); // Remove loading text
-        img.style.display = 'block'; // Show image
-    };
-
-    container.appendChild(img);
-    menuDisplay.appendChild(container);
-}
-
-// Event listener for the generate button
-generateButton.addEventListener('click', () => {
-    const randomMenu = generateMenu();
-    displayMenu(randomMenu);
-});
-
-// Event listener for the theme toggle button
-themeToggle.addEventListener('click', () => {
-    body.classList.toggle('dark-mode');
-    // Save theme preference to localStorage
-    if (body.classList.contains('dark-mode')) {
-        localStorage.setItem('theme', 'dark-mode');
-    } else {
-        localStorage.removeItem('theme');
+document.addEventListener('keydown', event => {
+    if (event.keyCode === 37) {
+        playerMove(-1);
+    } else if (event.keyCode === 39) {
+        playerMove(1);
+    } else if (event.keyCode === 40) {
+        playerDrop();
+    } else if (event.keyCode === 81) {
+        playerRotate(-1);
+    } else if (event.keyCode === 87 || event.keyCode === 38) {
+        playerRotate(1);
     }
 });
 
-// Check for saved theme on page load
-document.addEventListener('DOMContentLoaded', () => {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme) {
-        body.classList.add(savedTheme);
-    }
-});
+playerReset();
+updateScore();
+update();

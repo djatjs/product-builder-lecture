@@ -3,15 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>저녁 메뉴 추천</title>
+    <title>웹 테트리스</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="menu-container">
-        <h1>오늘 저녁 뭐 먹지?</h1>
-        <div id="menu-display"></div>
-        <button id="generate-button">메뉴 추천</button>
-        <button id="theme-toggle">테마 변경</button>
+    <div id="game-container">
+        <h1>Tetris</h1>
+        <div id="score-box">Score: <span id="score">0</span></div>
+        <canvas id="tetris" width="240" height="400"></canvas>
+        <div class="controls">
+            <p>조작법:</p>
+            <p>← → : 이동</p>
+            <p>↓ : 빠르게 내리기</p>
+            <p>↑, Q, W : 회전</p>
+        </div>
     </div>
     <script src="main.js"></script>
 </body>
