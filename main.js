@@ -1,290 +1,98 @@
-const canvas = document.getElementById('tetris');
-const context = canvas.getContext('2d');
-const scoreElement = document.getElementById('score');
-const linesElement = document.getElementById('lines');
-const startBtn = document.getElementById('start-btn');
+// Teachable Machine에서 제공한 모델 URL
+const URL = "https://teachablemachine.withgoogle.com/models/alrTVy0nz/";
 
-context.scale(20, 20);
+let model, maxPredictions;
 
-function arenaSweep() {
-    let rowCount = 1;
-    outer: for (let y = arena.length - 1; y > 0; --y) {
-        for (let x = 0; x < arena[y].length; ++x) {
-            if (arena[y][x] === 0) {
-                continue outer;
-            }
-        }
-
-        const row = arena.splice(y, 1)[0].fill(0);
-        arena.unshift(row);
-        ++y;
-
-        player.score += rowCount * 10;
-        player.lines += 1;
-        rowCount *= 2;
+// 페이지 로드 시 모델을 미리 로드합니다.
+async function loadModel() {
+    if (!model) {
+        const modelURL = URL + "model.json";
+        const metadataURL = URL + "metadata.json";
+        model = await tmImage.load(modelURL, metadataURL);
+        maxPredictions = model.getTotalClasses();
     }
 }
 
-function collide(arena, player) {
-    const [m, o] = [player.matrix, player.pos];
-    for (let y = 0; y < m.length; ++y) {
-        for (let x = 0; x < m[y].length; ++x) {
-            if (m[y][x] !== 0 &&
-                (arena[y + o.y] &&
-                arena[y + o.y][x + o.x]) !== 0) {
-                return true;
-            }
-        }
-    }
-    return false;
-}
+// 초기화
+loadModel();
 
-function createMatrix(w, h) {
-    const matrix = [];
-    while (h--) {
-        matrix.push(new Array(w).fill(0));
-    }
-    return matrix;
-}
+async function predictImage(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
 
-function createPiece(type) {
-    if (type === 'I') {
-        return [
-            [0, 1, 0, 0],
-            [0, 1, 0, 0],
-            [0, 1, 0, 0],
-            [0, 1, 0, 0],
-        ];
-    } else if (type === 'L') {
-        return [
-            [0, 2, 0],
-            [0, 2, 0],
-            [0, 2, 2],
-        ];
-    } else if (type === 'J') {
-        return [
-            [0, 3, 0],
-            [0, 3, 0],
-            [3, 3, 0],
-        ];
-    } else if (type === 'O') {
-        return [
-            [4, 4],
-            [4, 4],
-        ];
-    } else if (type === 'Z') {
-        return [
-            [5, 5, 0],
-            [0, 5, 5],
-            [0, 0, 0],
-        ];
-    } else if (type === 'S') {
-        return [
-            [0, 6, 6],
-            [6, 6, 0],
-            [0, 0, 0],
-        ];
-    } else if (type === 'T') {
-        return [
-            [0, 7, 0],
-            [7, 7, 7],
-            [0, 0, 0],
-        ];
-    }
-}
+        // UI 표시 전환
+        document.getElementById('upload-label').style.display = 'none';
+        const preview = document.getElementById('preview-image');
+        const resultSection = document.getElementById('result-section');
+        const spinner = document.getElementById('loading-spinner');
+        const labelContainer = document.getElementById('label-container');
+        
+        resultSection.style.display = 'block';
+        spinner.style.display = 'block';
+        labelContainer.innerHTML = '';
+        
+        reader.onload = async function(e) {
+            preview.src = e.target.result;
+            preview.style.display = 'block';
 
-function draw() {
-    context.fillStyle = '#000';
-    context.fillRect(0, 0, canvas.width, canvas.height);
-
-    drawMatrix(arena, {x: 0, y: 0});
-    drawMatrix(player.matrix, player.pos);
-}
-
-function drawMatrix(matrix, offset) {
-    matrix.forEach((row, y) => {
-        row.forEach((value, x) => {
-            if (value !== 0) {
-                context.fillStyle = colors[value];
-                context.fillRect(x + offset.x,
-                                 y + offset.y,
-                                 1, 1);
+            try {
+                // 모델 로드 확인 (아직 안 된 경우를 대비)
+                await loadModel();
                 
-                // Add block outline
-                context.lineWidth = 0.05;
-                context.strokeStyle = 'rgba(0,0,0,0.5)';
-                context.strokeRect(x + offset.x, y + offset.y, 1, 1);
+                // AI 분석 실행
+                const prediction = await model.predict(preview);
+                
+                // 확률 순으로 정렬
+                prediction.sort((a, b) => b.probability - a.probability);
+                
+                spinner.style.display = 'none';
+                displayResults(prediction);
+                document.querySelector('.retry-btn').style.display = 'block';
+                
+            } catch (error) {
+                console.error(error);
+                alert("모델 분석 중 오류가 발생했습니다.");
+                location.reload();
             }
-        });
-    });
-}
+        };
 
-function merge(arena, player) {
-    player.matrix.forEach((row, y) => {
-        row.forEach((value, x) => {
-            if (value !== 0) {
-                arena[y + player.pos.y][x + player.pos.x] = value;
-            }
-        });
-    });
-}
-
-function playerDrop() {
-    player.pos.y++;
-    if (collide(arena, player)) {
-        player.pos.y--;
-        merge(arena, player);
-        playerReset();
-        arenaSweep();
-        updateScore();
-    }
-    dropCounter = 0;
-}
-
-function playerMove(dir) {
-    player.pos.x += dir;
-    if (collide(arena, player)) {
-        player.pos.x -= dir;
+        reader.readAsDataURL(input.files[0]);
     }
 }
 
-function playerReset() {
-    const pieces = 'ILJOTSZ';
-    player.matrix = createPiece(pieces[pieces.length * Math.random() | 0]);
-    player.pos.y = 0;
-    player.pos.x = (arena[0].length / 2 | 0) -
-                   (player.matrix[0].length / 2 | 0);
+function displayResults(prediction) {
+    const labelContainer = document.getElementById('label-container');
     
-    if (collide(arena, player)) {
-        arena.forEach(row => row.fill(0));
-        player.score = 0;
-        player.lines = 0;
-        updateScore();
+    // 결과에 따른 재미있는 코멘트 추가 가능
+    const bestMatch = prediction[0].className;
+    const resultTitle = document.createElement('h2');
+    resultTitle.style.textAlign = 'center';
+    resultTitle.style.marginBottom = '20px';
+    resultTitle.innerText = `당신은 ${bestMatch}상입니다!`;
+    labelContainer.appendChild(resultTitle);
+
+    for (let i = 0; i < maxPredictions; i++) {
+        const percent = (prediction[i].probability * 100).toFixed(0);
+        const className = prediction[i].className;
+        
+        const wrapper = document.createElement('div');
+        wrapper.className = 'result-bar-wrapper';
+        
+        wrapper.innerHTML = `
+            <div class="bar-label">
+                <span>${className}상</span>
+                <span>${percent}%</span>
+            </div>
+            <div class="bar-bg">
+                <div class="bar-fill" style="width: 0%"></div>
+            </div>
+        `;
+        
+        labelContainer.appendChild(wrapper);
+        
+        // 애니메이션 효과
+        setTimeout(() => {
+            wrapper.querySelector('.bar-fill').style.width = percent + '%';
+        }, 100);
     }
 }
-
-function playerRotate(dir) {
-    const pos = player.pos.x;
-    let offset = 1;
-    rotate(player.matrix, dir);
-    while (collide(arena, player)) {
-        player.pos.x += offset;
-        offset = -(offset + (offset > 0 ? 1 : -1));
-        if (offset > player.matrix[0].length) {
-            rotate(player.matrix, -dir);
-            player.pos.x = pos;
-            return;
-        }
-    }
-}
-
-function rotate(matrix, dir) {
-    for (let y = 0; y < matrix.length; ++y) {
-        for (let x = 0; x < y; ++x) {
-            [
-                matrix[x][y],
-                matrix[y][x],
-            ] = [
-                matrix[y][x],
-                matrix[x][y],
-            ];
-        }
-    }
-
-    if (dir > 0) {
-        matrix.forEach(row => row.reverse());
-    } else {
-        matrix.reverse();
-    }
-}
-
-let dropCounter = 0;
-let dropInterval = 1000;
-
-let lastTime = 0;
-let isPaused = true;
-
-function update(time = 0) {
-    if (isPaused) return;
-
-    const deltaTime = time - lastTime;
-    lastTime = time;
-
-    dropCounter += deltaTime;
-    if (dropCounter > dropInterval) {
-        playerDrop();
-    }
-
-    draw();
-    requestAnimationFrame(update);
-}
-
-function updateScore() {
-    scoreElement.innerText = player.score;
-    linesElement.innerText = player.lines;
-}
-
-const colors = [
-    null,
-    '#FF0D72', // I
-    '#0DC2FF', // L
-    '#0DFF72', // J
-    '#F538FF', // O
-    '#FF8E0D', // Z
-    '#FFE138', // S
-    '#3877FF', // T
-];
-
-const arena = createMatrix(12, 20);
-
-const player = {
-    pos: {x: 0, y: 0},
-    matrix: null,
-    score: 0,
-    lines: 0,
-};
-
-document.addEventListener('keydown', event => {
-    if (isPaused) return;
-    
-    if (event.keyCode === 37) {
-        playerMove(-1);
-    } else if (event.keyCode === 39) {
-        playerMove(1);
-    } else if (event.keyCode === 40) {
-        playerDrop();
-    } else if (event.keyCode === 81 || event.keyCode === 90) { // Q or Z
-        playerRotate(-1);
-    } else if (event.keyCode === 87 || event.keyCode === 38 || event.keyCode === 88) { // W, Up, X
-        playerRotate(1);
-    } else if (event.keyCode === 32) { // Space - Hard drop
-        while (!collide(arena, player)) {
-            player.pos.y++;
-        }
-        player.pos.y--;
-        merge(arena, player);
-        playerReset();
-        arenaSweep();
-        updateScore();
-    }
-});
-
-startBtn.addEventListener('click', () => {
-    if (isPaused) {
-        isPaused = false;
-        playerReset();
-        update();
-    } else {
-        // Reset game
-        arena.forEach(row => row.fill(0));
-        player.score = 0;
-        player.lines = 0;
-        updateScore();
-        playerReset();
-    }
-});
-
-// Initial draw
-player.matrix = createPiece('T');
-draw();
-updateScore();
