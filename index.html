@@ -3,59 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>동물상 테스트</title>
+    <title>인공지능 동물상 테스트</title>
     <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div id="main-container">
-        <h1>동물상 테스트</h1>
-        <div>Teachable Machine Image Model</div>
-        
-        <!-- 사진 업로드 버튼 -->
-        <input type="file" id="file-input" accept="image/*" onchange="readURL(this);" style="display: none;">
-        <button type="button" onclick="document.getElementById('file-input').click();" id="start-btn">사진 업로드</button>
+    <div class="container">
+        <header>
+            <h1>인공지능 동물상 테스트</h1>
+            <p class="subtitle">나는 강아지상일까, 오리상일까?</p>
+        </header>
 
-        <!-- 이미지 미리보기 영역 (웹캠 컨테이너 대신 사용) -->
-        <div id="image-container">
-            <img id="face-image" src="" alt="" style="max-width: 300px; border-radius: 10px; display: none; margin: 20px auto;">
-        </div>
-        
-        <div id="label-container"></div>
+        <main>
+            <!-- 사진 업로드 섹션 -->
+            <div class="upload-section">
+                <input type="file" id="image-input" accept="image/*" onchange="predictImage(this)" style="display: none;">
+                <div class="upload-box" onclick="document.getElementById('image-input').click();">
+                    <div id="upload-label">
+                        <span class="icon">📸</span>
+                        <p>사진을 올리거나 눌러서 업로드하세요</p>
+                    </div>
+                    <img id="preview-image" src="" alt="preview" style="display: none;">
+                </div>
+            </div>
 
-        <!-- 제휴 문의 및 댓글 섹션 유지 -->
-        <div id="contact-section">
-            <hr>
-            <h3>제휴 문의</h3>
-            <form action="https://formspree.io/f/mreezljy" method="POST" id="contact-form">
-                <div class="form-group">
-                    <input type="text" name="name" placeholder="성함/업체명" required>
+            <!-- 결과 표시 섹션 -->
+            <div id="result-section" style="display: none;">
+                <div id="loading-spinner">
+                    <div class="spinner"></div>
+                    <p>인공지능이 분석 중입니다...</p>
                 </div>
-                <div class="form-group">
-                    <input type="email" name="email" placeholder="이메일 주소" required>
-                </div>
-                <div class="form-group">
+                <div id="label-container"></div>
+            </div>
+
+            <button type="button" class="retry-btn" onclick="location.reload();" style="display: none;">다시 시도하기</button>
+        </main>
+
+        <!-- 제휴 및 댓글 섹션 -->
+        <footer>
+            <div class="footer-item">
+                <hr>
+                <h3>제휴 문의</h3>
+                <form action="https://formspree.io/f/mreezljy" method="POST" class="contact-form">
+                    <input type="text" name="name" placeholder="성함" required>
+                    <input type="email" name="email" placeholder="이메일" required>
                     <textarea name="message" placeholder="문의 내용" required></textarea>
-                </div>
-                <button type="submit" id="submit-btn">문의하기</button>
-            </form>
-        </div>
-
-        <div id="comments-section">
-            <hr>
+                    <button type="submit">문의하기</button>
+                </form>
+            </div>
             <div id="disqus_thread"></div>
-            <script>
-                (function() {
-                var d = document, s = d.createElement('script');
-                s.src = 'https://fromsun.disqus.com/embed.js';
-                s.setAttribute('data-timestamp', +new Date());
-                (d.head || d.body).appendChild(s);
-                })();
-            </script>
-        </div>
+        </footer>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
     <script src="main.js"></script>
+    <script>
+        (function() {
+            var d = document, s = d.createElement('script');
+            s.src = 'https://fromsun.disqus.com/embed.js';
+            s.setAttribute('data-timestamp', +new Date());
+            (d.head || d.body).appendChild(s);
+        })();
+    </script>
 </body>
 </html>
