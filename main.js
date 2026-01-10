@@ -15,7 +15,16 @@ async function init() {
         console.log("Model loaded successfully");
     } catch (e) {
         console.error("Model loading failed:", e);
-        // 모델 로드 실패 시 사용자에게 알림은 업로드 시점에 처리하거나 여기에 표시 가능
+        // 화면에 에러 메시지 표시
+        const uploadArea = document.getElementById('upload-area');
+        uploadArea.innerHTML = `
+            <div style="color: #ff6b6b; padding: 20px; border: 2px dashed #ff6b6b; border-radius: 10px;">
+                <h3>⚠️ 모델 로딩 실패</h3>
+                <p>GitHub 저장소의 <code>my_model</code> 폴더에 모델 파일이 없습니다.</p>
+                <p>Teachable Machine에서 다운로드한 파일들(model.json, metadata.json, weights.bin)을<br>
+                GitHub 저장소의 <code>my_model</code> 폴더에 업로드해주세요.</p>
+            </div>
+        `;
     }
 }
 
