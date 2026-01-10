@@ -12,13 +12,25 @@
         <h2>나는 순둥한 강아지상? 힙한 오리상?</h2>
         
         <div id="upload-area">
-            <input type="file" id="image-upload" accept="image/*" onchange="readFile(this);" style="display: none;">
-            <div id="image-show" onclick="document.getElementById('image-upload').click();">
-                <div id="upload-text">
-                    <p>📷</p>
-                    <p>여기를 눌러 사진을 업로드하세요</p>
+            <!-- 1단계: 모델 파일 업로드 -->
+            <div id="step-model">
+                <h3>Step 1. 모델 파일 열기</h3>
+                <p class="description">Teachable Machine에서 다운로드한 파일 3개를<br>한꺼번에 선택해주세요.<br><small>(model.json, metadata.json, weights.bin)</small></p>
+                <input type="file" id="model-input" multiple accept=".json, .bin" onchange="loadModelFromFile(this)" style="display: none;">
+                <button type="button" onclick="document.getElementById('model-input').click()" id="load-model-btn">📂 모델 파일 3개 선택하기</button>
+            </div>
+
+            <!-- 2단계: 이미지 업로드 (초기에는 숨김) -->
+            <div id="step-image" style="display: none;">
+                <h3>Step 2. 사진으로 테스트</h3>
+                <input type="file" id="image-upload" accept="image/*" onchange="readFile(this);" style="display: none;">
+                <div id="image-show" onclick="document.getElementById('image-upload').click();">
+                    <div id="upload-text">
+                        <p>📷</p>
+                        <p>여기를 눌러 사진을 업로드하세요</p>
+                    </div>
+                    <img id="image-preview" src="" alt="" style="display: none;">
                 </div>
-                <img id="image-preview" src="" alt="" style="display: none;">
             </div>
             
             <!-- 로딩 표시 -->
