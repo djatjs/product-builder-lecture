@@ -12,11 +12,21 @@
         <h2>나는 순둥한 강아지상? 힙한 오리상?</h2>
         
         <div id="upload-area">
-            <button type="button" onclick="init()" id="start-btn">테스트 시작하기</button>
-            <p class="description">카메라 이용 권한을 허용해주세요.</p>
+            <input type="file" id="image-upload" accept="image/*" onchange="readFile(this);" style="display: none;">
+            <div id="image-show" onclick="document.getElementById('image-upload').click();">
+                <div id="upload-text">
+                    <p>📷</p>
+                    <p>여기를 눌러 사진을 업로드하세요</p>
+                </div>
+                <img id="image-preview" src="" alt="" style="display: none;">
+            </div>
+            
+            <!-- 로딩 표시 -->
+            <div id="loading-area" style="display: none;">
+                <p>AI가 분석 중입니다...</p>
+            </div>
         </div>
 
-        <div id="webcam-container"></div>
         <div id="label-container"></div>
 
         <!-- 기존 하단 섹션 유지 -->

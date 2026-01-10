@@ -1,100 +1,105 @@
-// Teachable Machine 모델 URL
-// 사용자가 직접 만든 모델 파일을 my_model 폴더에 넣어야 합니다.
 const URL = "./my_model/";
 
-let model, webcam, labelContainer, maxPredictions;
+let model, labelContainer, maxPredictions;
 
-// 시작 버튼 클릭 시 실행
+// 페이지 로드 시 모델 미리 로드
+document.addEventListener('DOMContentLoaded', init);
+
 async function init() {
-    const startBtn = document.getElementById('start-btn');
-    startBtn.innerText = "로딩 중...";
-    startBtn.disabled = true;
-
     const modelURL = URL + "model.json";
     const metadataURL = URL + "metadata.json";
 
     try {
         model = await tmImage.load(modelURL, metadataURL);
         maxPredictions = model.getTotalClasses();
+        console.log("Model loaded successfully");
     } catch (e) {
-        alert("모델 파일을 찾을 수 없습니다! 'my_model' 폴더에 model.json과 metadata.json이 있는지 확인해주세요.");
-        startBtn.innerText = "테스트 시작하기";
-        startBtn.disabled = false;
-        return;
-    }
-
-    // 웹캠 설정
-    const flip = true; 
-    webcam = new tmImage.Webcam(300, 300, flip); // width, height, flip
-    await webcam.setup(); // 웹캠 접근 권한 요청
-    await webcam.play();
-    window.requestAnimationFrame(loop);
-
-    // UI 업데이트
-    document.getElementById("webcam-container").appendChild(webcam.canvas);
-    document.getElementById("upload-area").style.display = "none"; // 시작 버튼 숨기기
-    
-    labelContainer = document.getElementById("label-container");
-    for (let i = 0; i < maxPredictions; i++) {
-        // 결과 바(Bar) 생성
-        const wrapper = document.createElement("div");
-        wrapper.className = "label-wrapper";
-        
-        // 동물 이름 (예: Dog, Duck)
-        const nameDiv = document.createElement("div");
-        nameDiv.className = "label-name";
-        wrapper.appendChild(nameDiv);
-
-        // 게이지 바 배경
-        const progressContainer = document.createElement("div");
-        progressContainer.className = "progress-container";
-        
-        // 게이지 바 채움
-        const progressBar = document.createElement("div");
-        progressBar.className = "progress-bar";
-        progressContainer.appendChild(progressBar);
-        wrapper.appendChild(progressContainer);
-
-        // 퍼센트 텍스트
-        const percentDiv = document.createElement("div");
-        percentDiv.className = "label-percent";
-        wrapper.appendChild(percentDiv);
-
-        labelContainer.appendChild(wrapper);
+        console.error("Model loading failed:", e);
+        // 모델 로드 실패 시 사용자에게 알림은 업로드 시점에 처리하거나 여기에 표시 가능
     }
 }
 
-async function loop() {
-    webcam.update(); 
-    await predict();
-    window.requestAnimationFrame(loop);
+// 파일 선택 시 실행되는 함수
+function readFile(input) {
+    if (input.files && input.files[0]) {
+        var reader = new FileReader();
+
+        reader.onload = function(e) {
+            // 이미지 미리보기 표시
+            const imagePreview = document.getElementById('image-preview');
+            imagePreview.src = e.target.result;
+            imagePreview.style.display = 'block';
+            document.getElementById('upload-text').style.display = 'none'; // 안내 문구 숨김
+
+            // 로딩 표시
+            const loadingArea = document.getElementById('loading-area');
+            loadingArea.style.display = 'block';
+            document.getElementById('label-container').innerHTML = ''; // 이전 결과 초기화
+
+            // 이미지가 로드된 후 예측 실행 (약간의 딜레이를 주어 UI 업데이트 보장)
+            imagePreview.onload = function() {
+                setTimeout(predict, 500); 
+            };
+        };
+
+        reader.readAsDataURL(input.files[0]);
+    }
 }
 
 // 예측 및 결과 표시
 async function predict() {
-    const prediction = await model.predict(webcam.canvas);
+    if (!model) {
+        alert("모델이 아직 로드되지 않았거나 찾을 수 없습니다.");
+        document.getElementById('loading-area').style.display = 'none';
+        return;
+    }
+
+    const image = document.getElementById('image-preview');
+    const prediction = await model.predict(image, false);
     
-    // 색상 배열 (순서대로 적용)
+    // 로딩 숨기기
+    document.getElementById('loading-area').style.display = 'none';
+
+    labelContainer = document.getElementById("label-container");
+    labelContainer.innerHTML = ""; // 기존 결과 삭제
+
+    // 색상 배열
     const barColors = ['#FF0D72', '#0DC2FF', '#0DFF72', '#FFE138'];
 
-    for (let i = 0; i < maxPredictions; i++) {
-        const wrapper = labelContainer.childNodes[i];
-        const nameDiv = wrapper.getElementsByClassName("label-name")[0];
-        const progressBar = wrapper.getElementsByClassName("progress-bar")[0];
-        const percentDiv = wrapper.getElementsByClassName("label-percent")[0];
+    // 예측 결과 정렬 (확률 높은 순)
+    prediction.sort((a, b) => parseFloat(b.probability) - parseFloat(a.probability));
 
-        // 클래스 이름 (Dog -> 강아지, Duck -> 오리 등으로 변경 가능)
-        // 여기서는 모델의 클래스명을 그대로 사용합니다.
+    for (let i = 0; i < maxPredictions; i++) {
+        // 결과 바 생성 구조
+        const wrapper = document.createElement("div");
+        wrapper.className = "label-wrapper";
+        
+        const nameDiv = document.createElement("div");
+        nameDiv.className = "label-name";
         nameDiv.innerHTML = prediction[i].className;
+        wrapper.appendChild(nameDiv);
+
+        const progressContainer = document.createElement("div");
+        progressContainer.className = "progress-container";
+        
+        const progressBar = document.createElement("div");
+        progressBar.className = "progress-bar";
         
         // 확률 계산
         const probability = prediction[i].probability.toFixed(2);
         const percent = Math.round(probability * 100);
 
-        // 스타일 적용
         progressBar.style.width = percent + "%";
         progressBar.style.backgroundColor = barColors[i % barColors.length];
         
+        progressContainer.appendChild(progressBar);
+        wrapper.appendChild(progressContainer);
+
+        const percentDiv = document.createElement("div");
+        percentDiv.className = "label-percent";
         percentDiv.innerHTML = percent + "%";
+        wrapper.appendChild(percentDiv);
+
+        labelContainer.appendChild(wrapper);
     }
 }
